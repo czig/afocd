@@ -1,20 +1,8 @@
 <template>
     <v-container>
-        <v-layout row>
-            <v-flex xs3>
-                <v-autocomplete :v-model="chosenAfsc"
-                            :items="afscs"
-                            :loading="afscLoading"
-                            label="Select an AFSC to continue."
-                            @input="getDegreeQuals($event)">
-                </v-autocomplete> 
-            </v-flex>
-            <v-flex>
-            </v-flex>
-        </v-layout>
         <v-card>
             <v-card-title>
-                {{ chosenAfsc }} Degrees
+                All Degrees 
                 <v-spacer></v-spacer> 
                 <v-text-field
                     v-model="search"
@@ -26,11 +14,11 @@
             </v-card-title>
             <v-data-table 
                 :headers="headers"
-                :items="degreeTree"
+                :items="cipTree"
                 :pagination.sync="pagination"
-                :loading="degreeLoading"
+                :loading="cipLoading"
                 :search="search"
-                item-key="name">
+                item-key="CIP_Code">
                 <template slot="headers" slot-scope="props">
                     <tr>
                         <th v-for="header in props.headers"
@@ -49,10 +37,8 @@
                         <td style="cursor: pointer;" @click="props.expanded = !props.expanded">
                             <v-icon :class="{activeRow: props.expanded}">keyboard_arrow_down</v-icon>
                         </td>
-                        <td class="text-xs-left">{{ props.item.tier }}</td>
                         <td class="text-xs-left">{{ props.item.CIP_Code }}</td>
                         <td class="text-xs-left">{{ props.item.degreeName }}</td>
-                        <td class="text-xs-right">{{ props.item.numDegrees }}</td>
                         <td class="text-xs-right">{{ props.item.total }}</td>
                     </tr>
                 </template>
@@ -69,15 +55,11 @@
                             <tr>
                                 <td :width="subHeaders[0].width"
                                     class="text-xs-left"></td>
-                                <td :width="subHeaders[1].width"
-                                    class="text-xs-left"></td>
-                                <td :width="subHeaders[2].width" 
+                                <td :width="subHeaders[1].width" 
                                     class="text-xs-left">{{ props.item.CIP_Code }}</td>
-                                <td :width="subHeaders[3].width"
+                                <td :width="subHeaders[2].width"
                                     class="text-xs-left">{{ props.item.degreeName }}</td>
-                                <td :width="subHeaders[4].width"
-                                    class="text-xs-right"></td>
-                                <td :width="subHeaders[5].width"
+                                <td :width="subHeaders[3].width"
                                     class="text-xs-right"></td>
                             </tr>
                         </template>
@@ -97,7 +79,7 @@ export default {
         return {
             afscs: [],
             afscLoading: true,
-            degreeLoading: false,
+            cipLoading: true,
             chosenAfsc: "",
             //headers for degree Type (first two digits followed by ".XXXX")
             headers: [
@@ -107,13 +89,6 @@ export default {
                   'align': 'left',
                   'sortable': false,
                   'width': '5%'
-                },
-                {
-                  'text': 'Tier',
-                  'value': 'tierOrder',
-                  'align': 'left',
-                  'sortable': true,
-                  'width': '14%'
                 },
                 {
                   'text': 'CIP Code',
@@ -127,14 +102,7 @@ export default {
                   'value': 'degreeName',
                   'align': 'left',
                   'sortable': true,
-                  'width': '40%'
-                },
-                {
-                  'text': 'Chosen Degrees',
-                  'value': 'numDegrees',
-                  'align': 'right',
-                  'sortable': true,
-                  'width': '13%'
+                  'width': '67%'
                 },
                 {
                   'text': 'Total Degrees',
@@ -154,12 +122,6 @@ export default {
                   'width': '6%' 
                 },
                 {
-                  'text': '',
-                  'value': 'tierOrder',
-                  'align': 'left',
-                  'width': '14%' 
-                },
-                {
                   'text': 'CIP Code',
                   'value': 'CIP_Code',
                   'align': 'left',
@@ -169,13 +131,7 @@ export default {
                   'text': 'Degree Name',
                   'value': 'degreeName',
                   'align': 'left',
-                  'width': '40%'
-                },
-                {
-                  'text': '',
-                  'value': 'numDegrees',
-                  'align': 'right',
-                  'width': '13%'
+                  'width': '67%'
                 },
                 {
                   'text': '',
@@ -185,28 +141,12 @@ export default {
                 }
             ],
             pagination: {
-                sortBy: 'tier'
+                sortBy: 'CIP_Code'
             },
-            degreeQuals: [],
-            degreeTree: [],
-            degreeCounts: [],
             cipCodes: [],
-            cipCodesGrouped: [],
+            cipTree: [],
             cipCodeCounts: {},
             search: "",
-            tierDecode: {
-                'M': 'Mandatory',
-                'D': 'Desired',
-                'P': 'Permitted',
-            },
-            tierOrder: {
-                'Mandatory': 1,
-                'Desired': 2,
-                'Permitted': 3,
-            },
-            countM: 0,
-            countD: 0,
-            countP: 0, 
         }
     },
     computed: {
@@ -220,24 +160,6 @@ export default {
                 //noop
                 return;
             }
-        },
-        numM: function() {
-            var rowsM = this.degreeQuals.filter(function(d) {
-                return d.tier === 'M'; 
-            });
-            return rowsM.length; 
-        },
-        numD: function() {
-            var rowsD = this.degreeQuals.filter(function(d) {
-                return d.tier === 'D'; 
-            })
-            return rowsD.length;
-        },
-        numP: function() {
-            var rowsP = this.degreeQuals.filter(function(d) {
-                return d.tier === 'P'; 
-            })
-            return rowsP.length;
         },
     },
     methods: {
@@ -253,60 +175,6 @@ export default {
                 this.pagination.descending = false
             }
         },
-        getNumTier: function(tier) {
-            var rowsInTier = this.degreeQuals.filter((d) => {
-                return d.tier === tier;
-            })   
-            return rowsInTier.length;
-        },
-        getDegreeQuals: function(chosenAfsc) {
-            console.log(chosenAfsc)
-            this.chosenAfsc = chosenAfsc
-            this.degreeLoading = true
-            axios.get('http://localhost:5005/api/getDegreeQuals',{
-                params: {
-                    afsc: chosenAfsc
-                }
-            }).then((res) => {
-                //we have received all qualifiying degrees and which tier they are in for afsc
-                console.log(res.data.data)
-                this.degreeQuals = res.data.data
-                this.degreeQuals.map((d) => {
-                    d.degreeType = d.CIP_Code.substring(0,2) + ".XXXX"
-                    d.name = d.CIP_Code + " - " + d.degreeName;
-                    d.tier = this.tierDecode[d.tier];
-                })
-                //group by tier and degreeType for displaying in dataTable (array of objects)
-                //children property is an array of degrees
-                //TODO: improve grouping code
-                this.degreeTree = _.chain(res.data.data)
-                                    .groupBy(function(item) {
-                                        return item.tier + ","+item.degreeType 
-                                    })
-                                    .toPairs()
-                                    .map((d,i) => {
-                                        var tier = d[0].split(',')[0]
-                                        var cip = d[0].split(',')[1]
-                                        return {
-                                            'tier': tier,
-                                            'CIP_Code': cip,
-                                            'degreeName': this.cipCodesGrouped[cip][0].CIP_T.split(',')[0],
-                                            'children': d[1],
-                                            'numDegrees': d[1].length,
-                                            'total': this.cipCodeCounts[cip],
-                                            'tierOrder': this.tierOrder[tier],
-                                            'name': d[0]
-                                        }
-                                    })
-                                    .value();
-        
-                console.log('degreeTree')
-                console.log(this.degreeTree)
-                this.degreeLoading = false
-            }).catch(function(error) {
-                console.log(error)
-            })
-        }
     },
     created() {
         console.log('created')
@@ -330,17 +198,31 @@ export default {
             console.log(res.data.data[1])
             this.cipCodes = res.data.data
             this.cipCodes.forEach((d) => {
+                d.degreeName = d.CIP_T;
                 d.degreeType = d.CIP_Code.substring(0,2) + ".XXXX"
                 return d;
             })
-            //group Cip codes by degreeType (first two digits followed by ".XXXX")
-            this.cipCodesGrouped = _.chain(this.cipCodes)
-                                     .groupBy('degreeType')  
-                                     .value();
-            console.log('cipcodesGrouped')
-            console.log(this.cipCodesGrouped)
+            //children property is an array of degrees
+            //TODO: improve grouping code
+            this.cipTree = _.chain(this.cipCodes)
+                                .groupBy(function(item) {
+                                    return item.degreeType 
+                                })
+                                .toPairs()
+                                .map((d,i) => {
+                                    return {
+                                        'CIP_Code': d[0],
+                                        'degreeName': d[1][0].CIP_T.split(',')[0],
+                                        'children': d[1],
+                                        'total': d[1].length,
+                                    }
+                                })
+                                .value();
             console.log('cipCodes')
             console.log(this.cipCodes)
+            console.log('cipTree')
+            console.log(this.cipTree)
+            this.cipLoading = false;
         })
         .catch(function(error) {
             console.log(error)

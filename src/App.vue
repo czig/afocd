@@ -1,6 +1,18 @@
 <template>
-    <v-app>
-        <router-view/>
+    <v-app id="app">
+        <v-toolbar dark color="primary">
+            <v-toolbar-title>AFOCD Degree Qualifications</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-toolbar-items>
+                <v-btn flat to="/" router>Home</v-btn>
+                <v-btn flat to="/update" router>Update</v-btn>
+                <v-btn flat to="/view" router>View</v-btn>
+                <v-btn flat to="/search" router>Search</v-btn>
+            </v-toolbar-items>
+        </v-toolbar>
+        <main>
+            <router-view/>
+        </main>
     </v-app>
 </template>
 
@@ -11,12 +23,4 @@ export default {
 </script>
 
 <style>
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
 </style>

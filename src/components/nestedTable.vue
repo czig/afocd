@@ -1,20 +1,8 @@
 <template>
     <v-container>
-        <v-layout row>
-            <v-flex xs3>
-                <v-autocomplete :v-model="chosenAfsc"
-                            :items="afscs"
-                            :loading="afscLoading"
-                            label="Select an AFSC to continue."
-                            @input="getDegreeQuals($event)">
-                </v-autocomplete> 
-            </v-flex>
-            <v-flex>
-            </v-flex>
-        </v-layout>
         <v-card>
             <v-card-title>
-                {{ chosenAfsc }} Degrees
+                {{ tableTitle }}
                 <v-spacer></v-spacer> 
                 <v-text-field
                     v-model="search"
@@ -26,9 +14,9 @@
             </v-card-title>
             <v-data-table 
                 :headers="headers"
-                :items="degreeTree"
+                :items="tableData"
                 :pagination.sync="pagination"
-                :loading="degreeLoading"
+                :loading="tableLoading"
                 :search="search"
                 item-key="name">
                 <template slot="headers" slot-scope="props">
@@ -89,16 +77,10 @@
     </v-container>
     
 </template>
-
 <script>
-import axios from 'axios'
 export default {
     data() {
         return {
-            afscs: [],
-            afscLoading: true,
-            degreeLoading: false,
-            chosenAfsc: "",
             //headers for degree Type (first two digits followed by ".XXXX")
             headers: [
                 {
@@ -187,26 +169,22 @@ export default {
             pagination: {
                 sortBy: 'tier'
             },
-            degreeQuals: [],
-            degreeTree: [],
-            degreeCounts: [],
-            cipCodes: [],
-            cipCodesGrouped: [],
-            cipCodeCounts: {},
             search: "",
-            tierDecode: {
-                'M': 'Mandatory',
-                'D': 'Desired',
-                'P': 'Permitted',
-            },
-            tierOrder: {
-                'Mandatory': 1,
-                'Desired': 2,
-                'Permitted': 3,
-            },
-            countM: 0,
-            countD: 0,
-            countP: 0, 
+        }
+    },
+    props: {
+        tableData: {
+            type: Array,
+            required: true
+        },
+        tableLoading: {
+            type: Boolean,
+            required: true
+        },
+        tableTitle: {
+            type: String,
+            required: false,
+            default: 'Data'
         }
     },
     computed: {
@@ -220,24 +198,6 @@ export default {
                 //noop
                 return;
             }
-        },
-        numM: function() {
-            var rowsM = this.degreeQuals.filter(function(d) {
-                return d.tier === 'M'; 
-            });
-            return rowsM.length; 
-        },
-        numD: function() {
-            var rowsD = this.degreeQuals.filter(function(d) {
-                return d.tier === 'D'; 
-            })
-            return rowsD.length;
-        },
-        numP: function() {
-            var rowsP = this.degreeQuals.filter(function(d) {
-                return d.tier === 'P'; 
-            })
-            return rowsP.length;
         },
     },
     methods: {
@@ -259,106 +219,6 @@ export default {
             })   
             return rowsInTier.length;
         },
-        getDegreeQuals: function(chosenAfsc) {
-            console.log(chosenAfsc)
-            this.chosenAfsc = chosenAfsc
-            this.degreeLoading = true
-            axios.get('http://localhost:5005/api/getDegreeQuals',{
-                params: {
-                    afsc: chosenAfsc
-                }
-            }).then((res) => {
-                //we have received all qualifiying degrees and which tier they are in for afsc
-                console.log(res.data.data)
-                this.degreeQuals = res.data.data
-                this.degreeQuals.map((d) => {
-                    d.degreeType = d.CIP_Code.substring(0,2) + ".XXXX"
-                    d.name = d.CIP_Code + " - " + d.degreeName;
-                    d.tier = this.tierDecode[d.tier];
-                })
-                //group by tier and degreeType for displaying in dataTable (array of objects)
-                //children property is an array of degrees
-                //TODO: improve grouping code
-                this.degreeTree = _.chain(res.data.data)
-                                    .groupBy(function(item) {
-                                        return item.tier + ","+item.degreeType 
-                                    })
-                                    .toPairs()
-                                    .map((d,i) => {
-                                        var tier = d[0].split(',')[0]
-                                        var cip = d[0].split(',')[1]
-                                        return {
-                                            'tier': tier,
-                                            'CIP_Code': cip,
-                                            'degreeName': this.cipCodesGrouped[cip][0].CIP_T.split(',')[0],
-                                            'children': d[1],
-                                            'numDegrees': d[1].length,
-                                            'total': this.cipCodeCounts[cip],
-                                            'tierOrder': this.tierOrder[tier],
-                                            'name': d[0]
-                                        }
-                                    })
-                                    .value();
-        
-                console.log('degreeTree')
-                console.log(this.degreeTree)
-                this.degreeLoading = false
-            }).catch(function(error) {
-                console.log(error)
-            })
-        }
-    },
-    created() {
-        console.log('created')
-        //get list of Afscs for input 
-        axios.get('http://localhost:5005/api/getAfscs')
-        .then((res) => {
-            var afscObjects = res.data.data
-            for (let i = 0; i < afscObjects.length; i++) {
-                this.afscs.push(afscObjects[i].afsc) 
-            }
-            console.log(this.afscs)
-            this.afscLoading = false 
-        })
-        .catch(function(error) {
-            console.log(error)
-        })
-
-        //get list of cip codes 
-        axios.get('http://localhost:5005/api/getCips')
-        .then((res) => {
-            console.log(res.data.data[1])
-            this.cipCodes = res.data.data
-            this.cipCodes.forEach((d) => {
-                d.degreeType = d.CIP_Code.substring(0,2) + ".XXXX"
-                return d;
-            })
-            //group Cip codes by degreeType (first two digits followed by ".XXXX")
-            this.cipCodesGrouped = _.chain(this.cipCodes)
-                                     .groupBy('degreeType')  
-                                     .value();
-            console.log('cipcodesGrouped')
-            console.log(this.cipCodesGrouped)
-            console.log('cipCodes')
-            console.log(this.cipCodes)
-        })
-        .catch(function(error) {
-            console.log(error)
-        })
-
-        //get grouping of cip codes by first two digits to create a lookup for totals
-        axios.get('http://localhost:5005/api/getCipTypes')
-        .then((res) => {
-            var data = res.data.data
-            console.log(data[1])
-            //build lookup (degreeType is key and total is value)
-            for (let i = 0; i < data.length; i++) {
-                this.cipCodeCounts[data[i].degreeType] = data[i].total
-            }
-        })
-        .catch(function(error) {
-            console.log(error)
-        })
     },
     mounted() {
         console.log('mounted')
