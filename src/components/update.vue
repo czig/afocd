@@ -13,7 +13,7 @@
             <v-stepper-content step="1">
                 <v-layout row>
                     <v-flex xs3>
-                        <v-autocomplete :v-model="chosenAfsc"
+                        <v-autocomplete v-model="chosenAfsc"
                                     :items="afscs"
                                     :loading="afscLoading"
                                     label="Select an AFSC to continue."
@@ -29,9 +29,13 @@
                 </v-layout>
             </v-stepper-content>
             <v-stepper-content step="2">
-                <nestedTable :tableData="degreeTree"
+                <nestedTable :tableData.sync="degreeTree"
                              :tableLoading="degreeLoading"
-                             :tableTitle="chosenAfsc + ' Degrees'">
+                             :tableTitle="chosenAfsc + ' Degrees'"
+                             :afsc="chosenAfsc"
+                             :groupedDegrees="cipCodesGrouped"
+                             :degreeCounts="cipCodeCounts"
+                             :degreeAutoComplete="cipList">
                 </nestedTable>
                 <v-layout row>
                     <v-btn color="warning" @click="step=1">Back</v-btn>
@@ -84,8 +88,9 @@ export default {
                 'Permitted': 3,
             },
             cipCodes: [],
-            cipCodesGrouped: [],
+            cipCodesGrouped: {},
             cipCodeCounts: {},
+            cipList: [],
             firstDisabled: true
         }
     },
@@ -102,7 +107,6 @@ export default {
         },
         getDegreeQuals: function(chosenAfsc) {
             console.log(chosenAfsc)
-            this.chosenAfsc = chosenAfsc
             this.firstDisabled = false
             this.degreeLoading = true
             axios.get('http://localhost:5005/api/getDegreeQuals',{
@@ -115,7 +119,7 @@ export default {
                 this.degreeQuals = res.data.data
                 this.degreeQuals.map((d) => {
                     d.degreeType = d.CIP_Code.substring(0,2) + ".XXXX"
-                    d.name = d.CIP_Code + " - " + d.degreeName;
+                    d.key = this.tierDecode[d.tier] + ',' + d.CIP_Code;
                     d.tier = this.tierDecode[d.tier];
                 })
                 //group by tier and degreeType for displaying in dataTable (array of objects)
@@ -137,7 +141,7 @@ export default {
                                             'numDegrees': d[1].length,
                                             'total': this.cipCodeCounts[cip],
                                             'tierOrder': this.tierOrder[tier],
-                                            'name': d[0]
+                                            'key': d[0]
                                         }
                                     })
                                     .value();
@@ -177,10 +181,21 @@ export default {
             this.cipCodesGrouped = _.chain(this.cipCodes)
                                      .groupBy('degreeType')  
                                      .value();
-            console.log('cipcodesGrouped')
-            console.log(this.cipCodesGrouped)
-            console.log('cipCodes')
-            console.log(this.cipCodes)
+
+            //cip list for autocomplete
+            var cipList = this.cipCodes.map((d) => {
+                return d.CIP_Code + ' - ' + d.CIP_T; 
+            })
+            var cipTypeList = Object.keys(this.cipCodesGrouped).map((key) => {
+                return key + ' - ' + this.cipCodesGrouped[key][0].CIP_T.split(',')[0]; 
+            })
+            this.cipList = cipList.concat(cipTypeList).sort(function(a,b) {
+                if (a > b) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            });
         })
         .catch(function(error) {
             console.log(error)

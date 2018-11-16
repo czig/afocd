@@ -2,7 +2,7 @@
     <v-container>
         <v-layout row>
             <v-flex xs3>
-                <v-autocomplete :v-model="chosenAfsc"
+                <v-autocomplete v-model="chosenAfsc"
                             :items="afscs"
                             :loading="afscLoading"
                             label="Select an AFSC to continue."
@@ -261,7 +261,6 @@ export default {
         },
         getDegreeQuals: function(chosenAfsc) {
             console.log(chosenAfsc)
-            this.chosenAfsc = chosenAfsc
             this.degreeLoading = true
             axios.get('http://localhost:5005/api/getDegreeQuals',{
                 params: {
