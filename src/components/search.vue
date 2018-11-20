@@ -179,7 +179,7 @@ export default {
     created() {
         console.log('created')
         //get list of Afscs for input 
-        axios.get('http://localhost:5005/api/getAfscs')
+        axios.get(getAfscsUrl)
         .then((res) => {
             var afscObjects = res.data.data
             for (let i = 0; i < afscObjects.length; i++) {
@@ -193,7 +193,7 @@ export default {
         })
 
         //get list of cip codes 
-        axios.get('http://localhost:5005/api/getCips')
+        axios.get(getCipsUrl)
         .then((res) => {
             console.log(res.data.data[1])
             this.cipCodes = res.data.data
@@ -229,7 +229,7 @@ export default {
         })
 
         //get grouping of cip codes by first two digits to create a lookup for totals
-        axios.get('http://localhost:5005/api/getCipTypes')
+        axios.get(getCipTypesUrl)
         .then((res) => {
             var data = res.data.data
             console.log(data[1])

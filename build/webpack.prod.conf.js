@@ -36,7 +36,14 @@ const webpackConfig = merge(baseWebpackConfig, {
     }),
     new webpack.DefinePlugin({
       'apiUrl': '"https://stars.afpc.randolph.af.mil/"',
-      'getCipUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/getCip"',
+      'getAfscsUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/getAfscs"',
+      'getCipsUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/getCips"',
+      'getCipTypesUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/getCipTypesUrl"',
+      'getDegreeQualsUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/getDegreeQuals"',
+      'getTargetRatesUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/getTargetRates"',
+      'getLastUpdateDateUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/getLastUpdateDateUrl"',
+      'submitDegreeQualsUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/submitDegreeQuals"',
+      'submitTargetRatesUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/submitTargetRates"',
     }),
     new UglifyJsPlugin({
       uglifyOptions: {

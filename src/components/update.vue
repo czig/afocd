@@ -10,6 +10,12 @@
             <v-stepper-step step="4">Complete</v-stepper-step>
         </v-stepper-header> 
         <v-stepper-items>
+            <v-layout row>
+                <v-spacer></v-spacer>
+                <span :class="{hide: !lastUpdate}" class="mt-3 mr-3">
+                    Last Update: {{ lastUpdate }}
+                </span>
+            </v-layout>
             <v-stepper-content step="1">
                 <v-layout row>
                     <v-flex xs3>
@@ -44,10 +50,14 @@
                 </v-layout>
             </v-stepper-content>
             <v-stepper-content step="3">
+                <editTable :data.sync="targetRates"
+                               :dataLoading="degreeLoading"
+                               :afsc="chosenAfsc">
+                </editTable>
                 <v-layout row>
                     <v-btn color="warning" @click="step=2">Back</v-btn>
                     <v-spacer></v-spacer>
-                    <v-btn color="success" @click="step=4">Submit</v-btn>
+                    <v-btn color="success" :loading="submitLoading" @click="submit()">Submit</v-btn>
                 </v-layout>
             </v-stepper-content>
             <v-stepper-content step="4">
@@ -66,6 +76,7 @@
 <script>
 import axios from 'axios'
 import NestedTable from '@/components/nestedTable'
+import EditTable from '@/components/editTable'
 import Thanks from '@/components/thanks'
 export default {
     data() {
@@ -91,11 +102,15 @@ export default {
             cipCodesGrouped: {},
             cipCodeCounts: {},
             cipList: [],
-            firstDisabled: true
+            firstDisabled: true,
+            submitLoading: false,
+            lastUpdate: "",
+            targetRates: [],
         }
     },
     components: {
         'nestedTable': NestedTable,
+        'editTable': EditTable,
         'thanks': Thanks, 
     },
     computed: {
@@ -103,13 +118,84 @@ export default {
     },
     methods: {
         submit: function() {
-            this.step = 4;
+            var percentCheck =  this.targetRates.reduce((accum,val) => {
+                return +val.percent + accum;
+            },0)
+            if (percentCheck !== 100) {
+                alert('Not Submitted! Percentages must add to 100!')
+                return;
+            }
+            var degreesSubmit = []
+            this.submitLoading = true
+            //flatten tree(make one array of all degrees)
+            for(let i = 0; i < this.degreeTree.length; i++) {
+                //remove properties/mutate from each child for submitting
+                //to limit data sent in post
+                var childrenSubmit = _.cloneDeep(this.degreeTree[i].children)
+                childrenSubmit.forEach((d) => {
+                    delete d.degreeType;
+                    delete d.degreeName;
+                    delete d.afsc;
+                    delete d.key;
+                    d.tier = d.tier.substring(0,1);
+                })
+                degreesSubmit = degreesSubmit.concat(childrenSubmit)
+            }
+            //send post for degree Quals
+            var posts = []
+            posts.push(axios.post(submitDegreeQualsUrl, {
+                afsc: this.chosenAfsc,
+                person: '1111111111A',
+                degrees: degreesSubmit 
+            }).catch((err) => {
+                alert('Something went wrong trying to send degree qualifications to the server. Please try again.') 
+                console.log(err) 
+                this.submitLoading = false 
+            }))
+            //drop properties before submitting target rates
+            var targetRatesSubmit = this.targetRates.map((d) => {
+                var outputObj = {}
+                outputObj.tier = d.tier.substring(0,1);
+                outputObj.criteria = d.criteria
+                outputObj.percent = d.percent
+                return outputObj;
+            })
+            console.log('targetRatesSubmit')
+            console.log(targetRatesSubmit)
+            //send post for target rates
+            posts.push(axios.post(submitTargetRatesUrl, {
+                afsc: this.chosenAfsc,
+                person: '1111111111A',
+                targetRates: targetRatesSubmit 
+            }).catch((err) => {
+                alert('Something went wrong trying to send target rates to the server. Please try again.') 
+                console.log(err) 
+                this.submitLoading = false 
+            }))
+
+            //determine success after both post request complete
+            axios.all(posts)
+            .then((res) => {
+                if (res) {
+                    var success = res.every((d) => {
+                        return (d.status === 200 && d.data.success === true);
+                    })
+                    if (success) {
+                        this.step = 4 
+                    } else {
+                        alert('Something went wrong trying to communicate with the server. Please try again.') 
+                    }
+                } else {
+                    alert('Something went wrong trying to communicate with the server. Please try again.') 
+                }
+                this.submitLoading = false 
+            })
         },
         getDegreeQuals: function(chosenAfsc) {
             console.log(chosenAfsc)
             this.firstDisabled = false
             this.degreeLoading = true
-            axios.get('http://localhost:5005/api/getDegreeQuals',{
+            axios.get(getDegreeQualsUrl,{
                 params: {
                     afsc: chosenAfsc
                 }
@@ -124,7 +210,6 @@ export default {
                 })
                 //group by tier and degreeType for displaying in dataTable (array of objects)
                 //children property is an array of degrees
-                //TODO: improve grouping code
                 this.degreeTree = _.chain(res.data.data)
                                     .groupBy(function(item) {
                                         return item.tier + ","+item.degreeType 
@@ -152,11 +237,46 @@ export default {
             }).catch(function(error) {
                 console.log(error)
             })
+
+            //get tier target accesion rates 
+            axios.get(getTargetRatesUrl, {
+                params: {
+                    afsc: chosenAfsc
+                }
+            })
+            .then((res) => {
+                var data = res.data.data
+                data.map((d) => {
+                    d.tier = this.tierDecode[d.tier]
+                    d.tierOrder = this.tierOrder[d.tier]
+                    d.key = d.tier + d.criteria + d.percent;
+                    d.percent = +d.percent
+                    return d;
+                })
+                this.targetRates = data
+            })
+            .catch(function(error) {
+                console.log(error)
+            })
+
+            //get date of most recent update
+            axios.get(getLastUpdateDateUrl, {
+                params: {
+                    afsc: chosenAfsc
+                }
+            })
+            .then((res) => {
+                var data = res.data.data
+                this.lastUpdate = new Date(data['lastUpdate']).toDateString()
+            })
+            .catch(function(error) {
+                console.log(error)
+            })
         }
     },
     created() {
         //get list of Afscs for input
-        axios.get('http://localhost:5005/api/getAfscs')
+        axios.get(getAfscsUrl)
         .then((res) => {
             var afscObjects = res.data.data
             for (let i = 0; i < afscObjects.length; i++) {
@@ -169,7 +289,7 @@ export default {
             console.log(error)
         })
         //get list of cip codes 
-        axios.get('http://localhost:5005/api/getCips')
+        axios.get(getCipsUrl)
         .then((res) => {
             console.log(res.data.data[1])
             this.cipCodes = res.data.data
@@ -202,7 +322,7 @@ export default {
         })
 
         //get grouping of cip codes by first two digits to create a lookup for totals
-        axios.get('http://localhost:5005/api/getCipTypes')
+        axios.get(getCipTypesUrl)
         .then((res) => {
             var data = res.data.data
             console.log(data[1])
@@ -214,6 +334,13 @@ export default {
         .catch(function(error) {
             console.log(error)
         })
+
     }
 }
 </script>
+
+<style scoped>
+    .hide {
+        visibility: hidden;
+    }
+</style>

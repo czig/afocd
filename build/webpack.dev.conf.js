@@ -50,7 +50,14 @@ const devWebpackConfig = merge(baseWebpackConfig, {
     }),
     new webpack.DefinePlugin({
       'apiUrl': '"http://localhost:5005/api/"',
-      'getCipUrl': '"http://localhost:5005/api/getCip"',
+      'getAfscsUrl': '"http://localhost:5005/api/getAfscs"',
+      'getCipsUrl': '"http://localhost:5005/api/getCips"',
+      'getCipTypesUrl': '"http://localhost:5005/api/getCipTypes"',
+      'getDegreeQualsUrl': '"http://localhost:5005/api/getDegreeQuals"',
+      'getTargetRatesUrl': '"http://localhost:5005/api/getTargetRates"',
+      'getLastUpdateDateUrl': '"http://localhost:5005/api/getLastUpdateDate"',
+      'submitDegreeQualsUrl': '"http://localhost:5005/api/submitDegreeQuals"',
+      'submitTargetRatesUrl': '"http://localhost:5005/api/submitTargetRates"'
     }),
     new webpack.HotModuleReplacementPlugin(),
     new webpack.NamedModulesPlugin(), // HMR shows correct file names in console on update.

@@ -407,9 +407,16 @@ export default {
             this.dialog = true 
         },
         updateDegreeNumbers: function() {
+            //update number of degrees in each row
             this.tableData.map((d) => {
                 d.numDegrees = d.children.length;    
             }) 
+            //find and remove any parents with no children
+            var emptyParent = this.tableData.filter((d) => {
+                return d.children.length === 0;
+            })[0]
+            var index = this.tableData.indexOf(emptyParent)
+            this.tableData.splice(index,1)
         },
         close: function() {
             //close dialog
