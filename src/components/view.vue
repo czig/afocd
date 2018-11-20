@@ -9,10 +9,32 @@
                             @input="getDegreeQuals($event)">
                 </v-autocomplete> 
             </v-flex>
-            <v-flex>
-            </v-flex>
+            <v-spacer></v-spacer>
+            <span :class="{hide: !lastUpdate}" class="mt-3 mr-3">
+                Last Update: {{ lastUpdate }}
+            </span>
         </v-layout>
         <v-card>
+            <v-card-title>
+                {{ chosenAfsc }} Target Accession Rates 
+            </v-card-title>
+            <v-data-table 
+                :headers="targetHeaders"
+                :items="targetRates"
+                :loading="degreeLoading"
+                item-key="key"
+                hide-actions>
+                <template slot="items" slot-scope="props">
+                    <tr>
+                        <td class="text-xs-left">{{ props.item.tier }}</td>
+                        <td class="text-xs-left">{{ props.item.criteria }}</td>
+                        <td class="text-xs-left">{{ props.item.percent }}</td>
+                    </tr>
+                </template>
+            </v-data-table>
+        </v-card>
+        <v-divider></v-divider>
+        <v-card class="mt-3">
             <v-card-title>
                 {{ chosenAfsc }} Degrees
                 <v-spacer></v-spacer> 
@@ -99,6 +121,7 @@ export default {
             afscLoading: true,
             degreeLoading: false,
             chosenAfsc: "",
+            lastUpdate: "",
             //headers for degree Type (first two digits followed by ".XXXX")
             headers: [
                 {
@@ -184,6 +207,24 @@ export default {
                   'width': '13%'
                 }
             ],
+            targetHeaders: [
+                {
+                  'text': 'Tier',
+                  'value': 'tierOrder',
+                  'align': 'left'
+                },
+                {
+                  'text': 'Criteria',
+                  'value': 'criteria',
+                  'align': 'left',
+                  'sortable': false
+                },
+                {
+                  'text': 'Percentage (%)',
+                  'value': 'percent',
+                  'align': 'left',
+                },
+            ],
             pagination: {
                 sortBy: 'tier'
             },
@@ -204,6 +245,7 @@ export default {
                 'Desired': 2,
                 'Permitted': 3,
             },
+            targetRates: [],
             countM: 0,
             countD: 0,
             countP: 0, 
@@ -305,6 +347,39 @@ export default {
             }).catch(function(error) {
                 console.log(error)
             })
+            //get tier target accesion rates 
+            axios.get('http://localhost:5005/api/getTargetRates', {
+                params: {
+                    afsc: chosenAfsc
+                }
+            })
+            .then((res) => {
+                var data = res.data.data
+                data.map((d) => {
+                    d.tier = this.tierDecode[d.tier]
+                    d.tierOrder = this.tierOrder[d.tier]
+                    d.key = d.tier + d.criteria + d.percent;
+                    return d;
+                })
+                this.targetRates = data
+            })
+            .catch(function(error) {
+                console.log(error)
+            })
+
+            //get date of most recent update
+            axios.get('http://localhost:5005/api/getLastUpdateDate', {
+                params: {
+                    afsc: chosenAfsc
+                }
+            })
+            .then((res) => {
+                var data = res.data.data
+                this.lastUpdate = new Date(data['lastUpdate']).toDateString()
+            })
+            .catch(function(error) {
+                console.log(error)
+            })
         }
     },
     created() {
@@ -373,4 +448,7 @@ export default {
 .activeRow {
     transform: rotate(-180deg);
 }
+    .hide {
+        visibility: hidden;
+    }
 </style>
