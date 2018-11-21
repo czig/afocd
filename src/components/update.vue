@@ -143,10 +143,12 @@ export default {
             }
             //send post for degree Quals
             var posts = []
-            posts.push(axios.post(submitDegreeQualsUrl, {
-                afsc: this.chosenAfsc,
-                person: '1111111111A',
-                degrees: degreesSubmit 
+            var degreeFormData = new FormData();
+            degreeFormData.set('afsc',this.chosenAfsc)
+            degreeFormData.set('person','1111111111A')
+            degreeFormData.set('degrees',JSON.stringify(degreesSubmit))
+            posts.push(axios.post(submitDegreeQualsUrl, degreeFormData, {
+                headers: {'Content-Type': 'multipart/form-data'}
             }).catch((err) => {
                 alert('Something went wrong trying to send degree qualifications to the server. Please try again.') 
                 console.log(err) 
@@ -163,10 +165,15 @@ export default {
             console.log('targetRatesSubmit')
             console.log(targetRatesSubmit)
             //send post for target rates
-            posts.push(axios.post(submitTargetRatesUrl, {
-                afsc: this.chosenAfsc,
-                person: '1111111111A',
-                targetRates: targetRatesSubmit 
+            var targetFormData = new FormData();
+            targetFormData.set('afsc',this.chosenAfsc)
+            targetFormData.set('person','1111111111A')
+            targetFormData.set('targetRates',JSON.stringify(targetRatesSubmit))
+            for (var pair of targetFormData.entries()) {
+                console.log(pair[0]+ ', '+pair[1])
+            }
+            posts.push(axios.post(submitTargetRatesUrl, targetFormData, {
+                headers: {'Content-Type': 'multipart/form-data'}
             }).catch((err) => {
                 alert('Something went wrong trying to send target rates to the server. Please try again.') 
                 console.log(err) 
