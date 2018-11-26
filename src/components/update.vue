@@ -146,7 +146,18 @@ export default {
             var degreeFormData = new FormData();
             degreeFormData.set('afsc',this.chosenAfsc)
             degreeFormData.set('person','1111111111A')
-            degreeFormData.set('degrees',JSON.stringify(degreesSubmit))
+            //limit 100 objects per input to allow this to work with SAS
+            //note: form properties will be degrees1, ..., degreesn to match
+            //      what SAS wants to do implicity. Also have degrees0 and degrees_count
+            //      to store number of chunks
+            var numChunks = Math.ceil(degreesSubmit.length/100);
+            var degreeChunks = []
+            degreeFormData.set('degrees0',numChunks)
+            degreeFormData.set('degrees_count',numChunks)
+            for (let i = 0; i < numChunks; i++) {
+                degreeChunks[i] = degreesSubmit.splice(0,100)
+                degreeFormData.set('degrees'+(i+1),JSON.stringify(degreeChunks[i]))
+            }
             posts.push(axios.post(submitDegreeQualsUrl, degreeFormData, {
                 headers: {'Content-Type': 'multipart/form-data'}
             }).catch((err) => {
