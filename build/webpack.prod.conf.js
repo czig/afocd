@@ -44,6 +44,7 @@ const webpackConfig = merge(baseWebpackConfig, {
       'getLastUpdateDateUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/getLastUpdateDateUrl"',
       'submitDegreeQualsUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/submitDegreeQuals"',
       'submitTargetRatesUrl': '"https://stars.afpc.randolph.af.mil/SASStoredProcess/do?_program=/User Folders/Ziegler_Caleb/My Folder/afocd_input/submitTargetRates"',
+      'login': '"https://stars.afpc.randolph.af.mil/SASLogon/login?service=http%3A%2F%2Fstars.afpc.randolph.af.mil%2FSASStoredProcess%2Fj_spring_cas_security_check"'
     }),
     new UglifyJsPlugin({
       uglifyOptions: {

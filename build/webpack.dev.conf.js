@@ -57,7 +57,8 @@ const devWebpackConfig = merge(baseWebpackConfig, {
       'getTargetRatesUrl': '"http://localhost:5005/api/getTargetRates"',
       'getLastUpdateDateUrl': '"http://localhost:5005/api/getLastUpdateDate"',
       'submitDegreeQualsUrl': '"http://localhost:5005/api/submitDegreeQuals"',
-      'submitTargetRatesUrl': '"http://localhost:5005/api/submitTargetRates"'
+      'submitTargetRatesUrl': '"http://localhost:5005/api/submitTargetRates"',
+      'login': '"http://localhost:5005/api/login"',
     }),
     new webpack.HotModuleReplacementPlugin(),
     new webpack.NamedModulesPlugin(), // HMR shows correct file names in console on update.
