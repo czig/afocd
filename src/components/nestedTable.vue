@@ -51,7 +51,7 @@
             </v-card-title>
             <v-data-table 
                 :headers="headers"
-                :items="tableData"
+                :items="data"
                 :pagination.sync="pagination"
                 :loading="tableLoading"
                 :search="search"
@@ -264,6 +264,7 @@ export default {
                 'Desired': 2,
                 'Permitted': 3,
             },
+            data: []
         }
     },
     props: {
@@ -297,6 +298,11 @@ export default {
             required: false,
             default: []
         }
+    },
+    watch: {
+        tableLoading: function() {
+            this.data = this.tableData
+        },
     },
     computed: {
         newRow: function() {
@@ -372,23 +378,31 @@ export default {
             return rowsInTier.length;
         },
         sendDataToParent: function() {
-            this.$emit('update:tableData',this.tableData)   
+            this.$emit('update:tableData',this.data)   
         },
         deleteGroup: function(item) {
-            let index = this.tableData.indexOf(item)
-            confirm('Are you sure you want to delete this degree?') && this.tableData.splice(index,1)
-            this.sendDataToParent()
+            let index = this.data.indexOf(item)
+            if (index >= 0) {
+                //we found the index of the item
+                confirm('Are you sure you want to delete this degree group?') && this.data.splice(index,1)
+                this.sendDataToParent()
+            }
         },
         deleteSingle: function(item) {
             console.log('deleteSingle')
-            var parentDegree = this.tableData.filter((d) => {
-                return d.CIP_Code === item.degreeType; 
-            })[0]
-            const parentIndex = this.tableData.indexOf(parentDegree)
-            const itemIndex = this.tableData[parentIndex].children.indexOf(item)
-            confirm('Are you sure you want to delete this degree?') && this.tableData[parentIndex].children.splice(itemIndex,1)
-            this.updateDegreeNumbers()
-            this.sendDataToParent()
+            var parentIndex = this.data.findIndex((d) => {
+                return d.CIP_Code === item.degreeType && d.tier === item.tier; 
+            })
+            if (parentIndex >= 0) {
+                //we found the correct parent
+                const itemIndex = this.data[parentIndex].children.indexOf(item)
+                if (itemIndex >= 0) {
+                    //we found the child degree
+                    confirm('Are you sure you want to delete this degree?') && this.data[parentIndex].children.splice(itemIndex,1)
+                    this.updateDegreeNumbers()
+                    this.sendDataToParent()
+                }
+            }
         },
         editGroup: function(item) {
             this.editForm = true
@@ -408,15 +422,18 @@ export default {
         },
         updateDegreeNumbers: function() {
             //update number of degrees in each row
-            this.tableData.map((d) => {
+            this.data.map((d) => {
                 d.numDegrees = d.children.length;    
             }) 
             //find and remove any parents with no children
-            var emptyParent = this.tableData.filter((d) => {
+            var emptyParent = this.data.filter((d) => {
                 return d.children.length === 0;
             })[0]
-            var index = this.tableData.indexOf(emptyParent)
-            this.tableData.splice(index,1)
+            if (emptyParent) {
+                console.log('splicing parent with empty children')
+                var index = this.data.indexOf(emptyParent)
+                this.data.splice(index,1)
+            }
         },
         close: function() {
             //close dialog
@@ -434,198 +451,199 @@ export default {
         save: function() {
             var newRow = this.newRow;
             if (this.editForm === true) {
-                //save was called after an edit, must update tier 
-                if (_.includes(newRow.CIP_Code,".XXXX")) {
-                    //group of degrees
-                    this.tableData.forEach((d,i) => {
-                        //only one row will match on key
-                        if (d.key === this.prevItem.key) {
-                            //update parent
-                            this.tableData[i].tier = newRow.tier
-                            this.tableData[i].key = newRow.key 
-                            this.tableData[i].tierOrder = newRow.tierOrder
-                            let children = this.tableData[i].children
-                            children.forEach((g,j) => {
-                                //update children
-                                children[j].tier = newRow.tier 
-                                children[j].key = newRow.tier + ',' + children[j].CIP_Code
-                                children[j].tierOrder = newRow.tierOrder
-                            })
-                        }
-                    })
-                    //combine parents if necessary
-                    let parents = []
-                    for (let i = 0; i < this.tableData.length; i++) {
-                        if (_.includes(parents,this.tableData[i].key)) {
-                           let spouseIndex = parents.indexOf(this.tableData[i].key)
-                           this.tableData[i].children = this.tableData[i].children.concat(this.tableData[spouseIndex].children)
-                           this.tableData.splice(spouseIndex,1)
-                           break;
-                        }
-                        parents.push(this.tableData[i].key)
-                    }
-                } else {
-                    //single degree
-                    var childDegree = {}
-                    //find child degree and strip from parent
-                    this.tableData.forEach((d,i) => {
-                        if (d.key === this.prevItem.tier + ',' + this.prevItem.degreeType) {
-                            //we found the correct parent
-                            let children = this.tableData[i].children
-                            var childIndex = children.findIndex((g) => {
-                                return g.key === this.prevItem.key;
-                            })
-                            console.log('childIndex')
-                            console.log(childIndex)
-                            if (childIndex >= 0) {
-                                childDegree = this.tableData[i].children.splice(childIndex,1)[0]
-                                console.log(childDegree)
-                                childDegree.tier = newRow.tier
-                                childDegree.key = newRow.key
-                                childDegree.tierOrder = newRow.tierOrder
-                            }
-                        }
-                    })
-                    //find out where parent is (if exists)
-                    let parentIndex = this.tableData.findIndex((d) => {
-                        return d.key === childDegree.tier + ',' + childDegree.degreeType;
-                    })
-                    console.log('parentIndex')
-                    console.log(parentIndex)
-                    console.log(this.tableData[parentIndex])
-                    if (parentIndex === -1) {
-                        //have to create new parent and assign childDegree
-                        let newParent = {}
-                        newParent.key = childDegree.tier + ',' + childDegree.degreeType
-                        newParent.CIP_Code = childDegree.degreeType
-                        newParent.degreeName = this.groupedDegrees[childDegree.degreeType][0].CIP_T.split(',')[0]
-                        newParent.tier = childDegree.tier
-                        newParent.tierOrder = childDegree.tierOrder
-                        newParent.children = [childDegree]
-                        newParent.numDegrees = 1
-                        newParent.total = this.degreeCounts[childDegree.degreeType]
-                        //add parent
-                        this.tableData.push(newParent)
-                        
-                    } else {
-                        //parent exists, just add childDegree to parent's children
-                        this.tableData[parentIndex].children.push(childDegree)
-                    }
-                }
+                //save called after an edit 
+                this.editDegree(newRow)
             } else {
-                //test for adding a group of degrees
-                if (_.includes(newRow.CIP_Code,".XXXX")) {
-                    //add all degrees (if row with cipCode already exists, delete all rows with that cip code - cannot have one degree in two tiers, so have to remove all rows when adding all degrees)
-                    //match is an array
-                    var match = this.tableData.filter((d) => {
-                        return d.CIP_Code === newRow.CIP_Code; 
-                    })
-                    if (match.length > 0) {
-                       //we can have multiple matches, remove all of them if the user agrees
-                       for (let i = 0; i < match.length; i++) {
-                           let index = this.tableData.indexOf(match[i])
-                           confirm(`Are you sure you want to overwrite ${match[i].tier}: ${match[i].CIP_Code} - ${match[i].degreeName} (${match[i].numDegrees}) with ${newRow.tier}: ${newRow.CIP_Code} - ${newRow.degreeName} (${newRow.numDegrees})?`) && this.tableData.splice(index,1)
-                           console.log('index')
-                           console.log(index)
-                       }
-                    } 
-                    //finally add new row with all degrees for that grouping
-                    this.tableData.push(newRow) 
-                    console.log('match')
-                    console.log(match)
-                } else {
-                    //TODO: test this
-                    //remove degree from other parents (same degreeType but different tier)
-                    //find any parents with degree's degreeType
-                    var parentMatch = this.tableData.filter((d) => {
-                        return d.CIP_Code === newRow.degreeType;
-                    })
-                    if (parentMatch.length > 0) {
-                        //we found a parent (degreeType) 
-                        console.log('parent match')
-                        console.log(parentMatch)
-                        for (let i = 0; i < parentMatch.length; i++) {
-                            //can only have one specific degree per parent 
-                            var match = parentMatch[i].children.filter((d) => {
-                                return d.CIP_Code === newRow.CIP_Code;
-                            })[0]
-                            if (match) {
-                                //we found a match for current degree in children (overwrite current degree with new one if user confirms)
-                                console.log('child match')
-                                console.log(match)
-                                //only splice if different tier
-                                if (match.tier !== newRow.tier) {
-                                   //degree is same but tier is different
-                                    console.log('different tier')
-                                   let index = parentMatch[i].children.indexOf(match)
-                                   let response = confirm(`Are you sure you want to overwrite ${match.tier}: ${match.CIP_Code} - ${match.degreeName} with ${newRow.tier}: ${newRow.CIP_Code} - ${newRow.degreeName}?`)
-                                   if (response) {
-                                      parentMatch[i].children.splice(index,1)
-                                   } else {
-                                      //if user cancel's, do not remove degree and do not add new degree
-                                      break;
-                                   }
-                               } else {
-                                   //same degree and tier - do nothing here 
-                                    alert('Degree currently in table.')
-                               }
-                            }
-                        }
-                        //TODO: test this (does filter return a new object or a pointer?)
-                        //add singular degree to correct parent (parent is combination of tier and degreeType)
-                        var correctParentKey = newRow.tier + ',' + newRow.degreeType;
-                        var correctParentMatch = this.tableData.filter((d) => {
-                            return d.key === correctParentKey;
-                        })[0]
-                        if (correctParentMatch) {
-                            //find out if degree we are trying to add is already a child of parent
-                            var childMatch = correctParentMatch.children.filter((d) => {
-                                return d.key === newRow.key;
-                            })[0]
-                            //only add degree to parent if degree is not there already
-                            if (!childMatch) {
-                                correctParentMatch.children.push(newRow) 
-                            } 
-                        } else {
-                            //we cannot match a parent, so we need to create a parent and assign degree as a child 
-                            console.log('add single degree')
-                            var newParent = {}
-                            newParent.key = newRow.tier + ',' + newRow.degreeType
-                            newParent.CIP_Code = newRow.degreeType
-                            newParent.degreeName = this.groupedDegrees[newRow.degreeType][0].CIP_T.split(',')[0]
-                            newParent.tier = newRow.tier
-                            newParent.tierOrder = newRow.tierOrder
-                            newParent.children = [newRow]
-                            newParent.numDegrees = 1
-                            newParent.total = this.degreeCounts[newRow.degreeType]
-                            //add parent
-                            this.tableData.push(newParent)
-                        }
-                    } else {
-                        //we do not match any parents (degreeTypes)
-                        //have to add a new parent with degree as a child
-                        console.log('add single degree')
-                        var newParent = {}
-                        newParent.key = newRow.tier + ',' + newRow.degreeType
-                        newParent.CIP_Code = newRow.degreeType
-                        newParent.degreeName = this.groupedDegrees[newRow.degreeType][0].CIP_T.split(',')[0]
-                        newParent.tier = newRow.tier
-                        newParent.tierOrder = newRow.tierOrder
-                        newParent.children = [newRow]
-                        newParent.numDegrees = 1
-                        newParent.total = this.degreeCounts[newRow.degreeType]
-                        //add parent
-                        this.tableData.push(newParent)
-                    }
-                }
+                //save called after adding a new degree 
+                this.addNewDegree(newRow)
             }
             this.updateDegreeNumbers()
             this.sendDataToParent()
             this.close()
-        }
+        },
+        addNewParent: function(newDegree) {
+            console.log('add single degree')
+            var newParent = {}
+            newParent.key = newDegree.tier + ',' + newDegree.degreeType
+            newParent.CIP_Code = newDegree.degreeType
+            newParent.degreeName = this.groupedDegrees[newDegree.degreeType][0].CIP_T.split(',')[0]
+            newParent.tier = newDegree.tier
+            newParent.tierOrder = newDegree.tierOrder
+            newParent.children = [newDegree]
+            newParent.numDegrees = 1
+            newParent.total = this.degreeCounts[newDegree.degreeType]
+            //add parent
+            this.data.push(newParent)
+        },
+        editDegree: function(newRow) {
+            //check if we are editing group of degrees or single degree
+            if (_.includes(newRow.CIP_Code,".XXXX")) {
+                //group of degrees
+                //prevItem is degree group before editing
+                let groupIndex = this.data.findIndex((d) => {
+                    return d.key === this.prevItem.key;
+                })
+                this.data[groupIndex].tier = newRow.tier
+                this.data[groupIndex].key = newRow.key 
+                this.data[groupIndex].tierOrder = newRow.tierOrder
+                let children = this.data[groupIndex].children
+                children.forEach((g,j) => {
+                    //update children
+                    children[j].tier = newRow.tier 
+                    children[j].key = newRow.tier + ',' + children[j].CIP_Code
+                    children[j].tierOrder = newRow.tierOrder
+                })
+                //combine parents if necessary
+                let parents = []
+                for (let i = 0; i < this.data.length; i++) {
+                    if (_.includes(parents,this.data[i].key)) {
+                       let spouseIndex = parents.indexOf(this.data[i].key)
+                       this.data[i].children = this.data[i].children.concat(this.data[spouseIndex].children)
+                       this.data.splice(spouseIndex,1)
+                       break;
+                    }
+                    parents.push(this.data[i].key)
+                }
+            } else {
+                //single degree
+                //prevItem is degree before editing
+                var childDegree = {}
+                //find index of parent that child degree edited from
+                let prevParentIndex = this.data.findIndex((d) => {
+                    return d.key === this.prevItem.tier + ',' + this.prevItem.degreeType;
+                })
+                //find index of child that was edited
+                var children = this.data[prevParentIndex].children
+                let childIndex = children.findIndex((g) => {
+                    return g.key === this.prevItem.key;
+                })
+                //only apply edits if the child degree to edit was found
+                console.log('childIndex')
+                console.log(childIndex)
+                if (childIndex >= 0) {
+                    //we found the correct child (splice returns array)
+                    childDegree = this.data[prevParentIndex].children.splice(childIndex,1)[0]
+                    console.log(childDegree)
+                    childDegree.tier = newRow.tier
+                    childDegree.key = newRow.key
+                    childDegree.tierOrder = newRow.tierOrder
+                    //find out where new parent is (if exists)
+                    let newParentIndex = this.data.findIndex((d) => {
+                        return d.key === childDegree.tier + ',' + childDegree.degreeType;
+                    })
+                    //create new parent or assign child to found parent
+                    console.log('new parentIndex')
+                    console.log(newParentIndex)
+                    console.log(this.data[newParentIndex])
+                    if (newParentIndex === -1) {
+                        //have to create new parent and assign childDegree
+                        this.addNewParent(childDegree)
+                    } else {
+                        //parent exists, just add childDegree to parent's children
+                        this.data[newParentIndex].children.push(childDegree)
+                    }
+                }
+            }
+        },
+        addNewDegree: function(newRow) {
+            //test for adding a group of degrees
+            if (_.includes(newRow.CIP_Code,".XXXX")) {
+                //degree group
+                //add all degrees (if row with cipCode already exists, delete all rows with that cip code - 
+                //cannot have one degree in two tiers, so have to remove all rows when adding all degrees)
+                var match = this.data.filter((d) => {
+                    return d.CIP_Code === newRow.CIP_Code; 
+                })
+                if (match.length > 0) {
+                   //we can have multiple matches, remove all of them if the user agrees
+                   for (let i = 0; i < match.length; i++) {
+                       let index = this.data.indexOf(match[i])
+                       confirm(`Are you sure you want to overwrite ${match[i].tier}: ${match[i].CIP_Code} - ${match[i].degreeName} (${match[i].numDegrees}) with ${newRow.tier}: ${newRow.CIP_Code} - ${newRow.degreeName} (${newRow.numDegrees})?`) && this.data.splice(index,1)
+                       console.log('index')
+                       console.log(index)
+                   }
+                } 
+                //finally add new row with all degrees for that grouping
+                this.data.push(newRow)
+                console.log('match')
+                console.log(match)
+            } else {
+                //single degree
+                //find any parents with degree's degreeType
+                var parentMatch = this.data.filter((d) => {
+                    return d.CIP_Code === newRow.degreeType;
+                })
+                //first, remove degree from other parents (same degreeType but different tier)
+                if (parentMatch.length > 0) {
+                    //we found at least one parent (degreeType) 
+                    console.log('parent match')
+                    console.log(parentMatch)
+                    //iterate through parents 
+                    for (let i = 0; i < parentMatch.length; i++) {
+                        //can only have one specific child degree per parent 
+                        var childIndex = parentMatch[i].children.findIndex((d) => {
+                            return d.CIP_Code === newRow.CIP_Code;
+                        })
+                        //we have child under parent if index >= 0
+                        if (childIndex >= 0) {
+                            //we found a match for current degree in children (overwrite current degree with new one if user confirms)
+                            var childDegree = parentMatch[i].children[childIndex]
+                            console.log('child index')
+                            console.log(childIndex)
+                            //only splice if different tier
+                            if (childDegree.tier !== newRow.tier) {
+                               //degree is same but tier is different
+                               console.log('different tier')
+                               let response = confirm(`Are you sure you want to overwrite ${childDegree.tier}: ${childDegree.CIP_Code} - ${childDegree.degreeName} with ${newRow.tier}: ${newRow.CIP_Code} - ${newRow.degreeName}?`)
+                               if (response) {
+                                  parentMatch[i].children.splice(childIndex,1)
+                               } else {
+                                  //if user cancel's, do not remove degree and do not add new degree
+                                  return;
+                               }
+                           } else {
+                               //same degree and tier - do nothing here 
+                                alert('Degree currently in table.')
+                                return;
+                           }
+                        }
+                    }
+                    //second, add single degree to correct parent (parent is combination of tier and degreeType)
+                    //use findIndex method here because we can only return one parent
+                    var correctParentKey = newRow.tier + ',' + newRow.degreeType;
+                    var correctParentIndex = this.data.findIndex((d) => {
+                        return d.key === correctParentKey;
+                    })
+                    console.log('correctParentIndex')
+                    console.log(correctParentIndex)
+                    if (correctParentIndex >= 0) {
+                        //the correct parent exists
+                        //find out if degree we are trying to add is already a child of parent
+                        var childIndex = this.data[correctParentIndex].children.findIndex((d) => {
+                            return d.key === newRow.key;
+                        })
+                        console.log('child index')
+                        console.log(childIndex)
+                        //only add degree to parent if degree is not there already
+                        if (childIndex == -1) {
+                            console.log('add child to existing parent')
+                            console.log(newRow)
+                            this.data[correctParentIndex].children.push(newRow) 
+                        } 
+                    } else {
+                        //we cannot match a parent, so we need to create a parent and assign degree as a child 
+                        this.addNewParent(newRow)
+                    }
+                } else {
+                    //we do not match any parents (degreeTypes), so no removals necessary
+                    //have to add a new parent with degree as a child
+                    this.addNewParent(newRow)
+                }
+            }
+        },
     },
     mounted() {
-        console.log('mounted')
+        console.log('mounted nestedTable')
     }
 }
 
