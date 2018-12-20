@@ -63,9 +63,9 @@
                             :class="[{ 'column sortable': header.sortable }, pagination.descending ? 'desc' : 'asc', header.value === pagination.sortBy ? 'active' : '']"
                             :align="header.align"
                             :width="header.width"
-                            @click="changeSort(header.value)">
+                            @click="changeSort(header)">
                             {{ header.text }}
-                            <v-icon small v-if="header.text">arrow_upward</v-icon> 
+                            <v-icon small v-if="header.sortable">arrow_upward</v-icon> 
                         </th>
                     </tr>
                 </template>
@@ -360,15 +360,14 @@ export default {
     },
     methods: {
         changeSort: function(column) {
-            //if someone clicks on the header for the expansions, do nothing
-            if (column === 'expand') {
-                return;
-            }
-            if (this.pagination.sortBy === column) {
-                this.pagination.descending = !this.pagination.descending
-            } else {
-                this.pagination.sortBy = column    
-                this.pagination.descending = false
+            //only allow a change if clicked column is sortable
+            if (column.sortable) {
+                if (this.pagination.sortBy === column.value) {
+                    this.pagination.descending = !this.pagination.descending
+                } else {
+                    this.pagination.sortBy = column.value    
+                    this.pagination.descending = false
+                }
             }
         },
         getNumTier: function(tier) {
