@@ -30,7 +30,8 @@
                 <v-layout row>
                     <v-spacer></v-spacer>
                     <v-btn color="primary" 
-                            :disabled="firstDisabled" 
+                            :disabled="!ready" 
+                            :loading="degreeLoading"
                             @click="step=2">Continue</v-btn>
                 </v-layout>
             </v-stepper-content>
@@ -99,11 +100,13 @@ export default {
                 'Permitted': 3,
             },
             cipCodes: [],
+            cipCodesLookup: {},
             cipCodesGrouped: {},
             cipCodeCounts: {},
             cipList: [],
-            firstDisabled: true,
             submitLoading: false,
+            gotDegrees: false,
+            gotCips: false,
             lastUpdate: "",
             targetRates: [],
         }
@@ -114,7 +117,9 @@ export default {
         'thanks': Thanks, 
     },
     computed: {
-        
+        ready: function() {
+            return this.gotCips && this.gotDegrees;
+        } 
     },
     methods: {
         submit: function() {
@@ -211,7 +216,6 @@ export default {
         },
         getDegreeQuals: function(chosenAfsc) {
             console.log(chosenAfsc)
-            this.firstDisabled = false
             this.degreeLoading = true
             axios.get(getDegreeQualsUrl,{
                 params: {
@@ -244,7 +248,21 @@ export default {
                                             'numDegrees': d[1].length,
                                             'total': this.cipCodeCounts[cip],
                                             'tierOrder': this.tierOrder[tier],
-                                            'key': d[0]
+                                            'key': d[0],
+                                            'avgNumPerYear': d[1].reduce(function(accum,current) {
+                                                return accum + +current.avgNumPerYear;
+                                            },0),
+                                            'avgPercentile': d[1].reduce(function(accum,current) {
+                                                accum.denom += +current.avgNumPerYear;
+                                                accum.numer += +current.avgNumPerYear*+current.avgPercentile;
+                                                accum.avg = accum.numer/accum.denom;
+                                                return accum;
+                                            },
+                                            {
+                                                'denom': 0,
+                                                'numer': 0,
+                                                'avg' : 0
+                                            }).avg || 0,
                                         }
                                     })
                                     .value();
@@ -252,6 +270,7 @@ export default {
                 console.log('degreeTree')
                 console.log(this.degreeTree)
                 this.degreeLoading = false
+                this.gotDegrees = true
             }).catch(function(error) {
                 console.log(error)
             })
@@ -315,6 +334,7 @@ export default {
                 d.degreeType = d.CIP_Code.substring(0,2) + ".XXXX"
                 return d;
             })
+
             //group Cip codes by degreeType (first two digits followed by ".XXXX")
             this.cipCodesGrouped = _.chain(this.cipCodes)
                                      .groupBy('degreeType')  
@@ -324,34 +344,19 @@ export default {
             var cipList = this.cipCodes.map((d) => {
                 return d.CIP_Code + ' - ' + d.CIP_T; 
             })
-            var cipTypeList = Object.keys(this.cipCodesGrouped).map((key) => {
-                return key + ' - ' + this.cipCodesGrouped[key][0].CIP_T.split(',')[0]; 
-            })
-            this.cipList = cipList.concat(cipTypeList).sort(function(a,b) {
-                if (a > b) {
-                    return 1;
-                } else {
-                    return -1;
+
+            //get grouping of cip codes by first two digits to create a lookup for totals
+            for (var degreeType in this.cipCodesGrouped) {
+                if (this.cipCodesGrouped.hasOwnProperty(degreeType)) {
+                    this.cipCodeCounts[degreeType] = this.cipCodesGrouped[degreeType].length
                 }
-            });
+            }
+            this.gotCips = true;
         })
         .catch(function(error) {
             console.log(error)
         })
 
-        //get grouping of cip codes by first two digits to create a lookup for totals
-        axios.get(getCipTypesUrl)
-        .then((res) => {
-            var data = res.data.data
-            console.log(data[1])
-            //build lookup (degreeType is key and total is value)
-            for (let i = 0; i < data.length; i++) {
-                this.cipCodeCounts[data[i].degreeType] = data[i].total
-            }
-        })
-        .catch(function(error) {
-            console.log(error)
-        })
 
     }
 }
