@@ -39,6 +39,8 @@
                         </td>
                         <td class="text-xs-left">{{ props.item.CIP_Code }}</td>
                         <td class="text-xs-left">{{ props.item.degreeName }}</td>
+                        <td class="text-xs-right">{{ Math.round(props.item.avgNumPerYear*10)/10 }}</td>
+                        <td class="text-xs-right">{{ Math.round(props.item.avgPercentile*100)/100 }}</td>
                         <td class="text-xs-right">{{ props.item.total }}</td>
                     </tr>
                 </template>
@@ -54,13 +56,27 @@
                         <template slot="items" slot-scope="props">
                             <tr>
                                 <td :width="subHeaders[0].width"
-                                    class="text-xs-left"></td>
+                                    class="text-xs-left">
+                                </td>
                                 <td :width="subHeaders[1].width" 
-                                    class="text-xs-left">{{ props.item.CIP_Code }}</td>
+                                    class="text-xs-left">
+                                    {{ props.item.CIP_Code }}
+                                </td>
                                 <td :width="subHeaders[2].width"
-                                    class="text-xs-left">{{ props.item.degreeName }}</td>
+                                    class="text-xs-left">
+                                    {{ props.item.degreeName }}
+                                </td>
                                 <td :width="subHeaders[3].width"
-                                    class="text-xs-right"></td>
+                                    class="text-xs-right">
+                                    {{ Math.round(+props.item.avgNumPerYear*10)/10 }}
+                                </td>
+                                <td :width="subHeaders[4].width"
+                                    class="text-xs-right">
+                                    {{ Math.round(+props.item.avgPercentile*100)/100 }}
+                                </td>
+                                <td :width="subHeaders[5].width"
+                                    class="text-xs-right">
+                                </td>
                             </tr>
                         </template>
                     </v-data-table>
@@ -88,7 +104,7 @@ export default {
                   'value': 'expand',
                   'align': 'left',
                   'sortable': false,
-                  'width': '5%'
+                  'width': '6%'
                 },
                 {
                   'text': 'CIP Code',
@@ -102,7 +118,21 @@ export default {
                   'value': 'degreeName',
                   'align': 'left',
                   'sortable': true,
-                  'width': '67%'
+                  'width': '41%'
+                },
+                {
+                  'text': 'Avg Grads/Year',
+                  'value': 'avgNumPerYear',
+                  'align': 'right',
+                  'sortable': true,
+                  'width': '13%'
+                },
+                {
+                  'text': 'Avg Percentile',
+                  'value': 'avgPercentile',
+                  'align': 'right',
+                  'sortable': true,
+                  'width': '13%'
                 },
                 {
                   'text': 'Total Degrees',
@@ -128,10 +158,25 @@ export default {
                   'width': '15%'
                 },
                 {
-                  'text': 'Degree Name',
+                  'text': 'Degree Type',
                   'value': 'degreeName',
                   'align': 'left',
-                  'width': '67%'
+                  'sortable': true,
+                  'width': '41%'
+                },
+                {
+                  'text': 'Avg Grads/Year',
+                  'value': 'avgNumPerYear',
+                  'align': 'right',
+                  'sortable': true,
+                  'width': '13%'
+                },
+                {
+                  'text': 'Avg Percentile',
+                  'value': 'avgPercentile',
+                  'align': 'right',
+                  'sortable': true,
+                  'width': '13%'
                 },
                 {
                   'text': '',
@@ -214,6 +259,21 @@ export default {
                                         'CIP_Code': d[0],
                                         'degreeName': d[1][0].CIP_T.split(',')[0],
                                         'children': d[1],
+                                        'avgNumPerYear': d[1].reduce(function(accum,current) {
+                                            return accum + +current.avgNumPerYear; 
+                                        },0),
+                                        'avgPercentile': d[1].reduce(function(accum,current) {
+                                            //calculate weighted average of average percentile 
+                                            accum.denom += +current.avgNumPerYear;
+                                            accum.numer += +current.avgNumPerYear*+current.avgPercentile;
+                                            accum.avg = accum.numer/accum.denom
+                                            return accum; 
+                                        },
+                                        {
+                                            'denom': 0, 
+                                            'numer': 0,
+                                            'avg': 0,
+                                        }).avg || 0,
                                         'total': d[1].length,
                                     }
                                 })
