@@ -58,7 +58,7 @@
                 <v-layout row>
                     <v-btn color="warning" @click="step=2">Back</v-btn>
                     <v-spacer></v-spacer>
-                    <v-btn color="success" :loading="submitLoading" @click="submit()">Submit</v-btn>
+                    <v-btn color="success" :loading="submitLoading" @click="submit()">Save</v-btn>
                 </v-layout>
             </v-stepper-content>
             <v-stepper-content step="4">
@@ -127,7 +127,7 @@ export default {
                 return +val.percent + accum;
             },0)
             if (percentCheck !== 100) {
-                alert('Not Submitted! Percentages must add to 100!')
+                alert('Not Saved! Percentages must add to 100!')
                 return;
             }
             var degreesSubmit = []
