@@ -66,6 +66,38 @@
                 </v-layout>
             </v-stepper-content>
             <v-stepper-content step="4">
+                <v-container grid-list-md v-if="requiredChanges.length != 0 || recommendedChanges.length != 0">
+                    <v-alert :value="requiredChanges.length != 0" type="error" class="elevation-4">Changes are required!</v-alert>
+                    <v-layout row wrap>
+                        <v-flex xs12 v-if="requiredChanges.length != 0">
+                            <v-card class="elevation-4">
+                                <v-card-title>
+                                   Required Changes: 
+                                </v-card-title>
+                                <v-card-text>
+                                    <ul>
+                                        <li v-for="item in requiredChanges">{{item}}</li>        
+                                    </ul>
+                                </v-card-text>
+                            </v-card>
+                        </v-flex>
+                    </v-layout>
+                    <v-alert :value="recommendedChanges.length != 0" type="warning" class="elevation-4">You have recommended changes!</v-alert>
+                    <v-layout row wrap>
+                        <v-flex xs12 v-if="recommendedChanges.length != 0">
+                            <v-card class="elevation-4">
+                                <v-card-title>
+                                   Recommended Changes: 
+                                </v-card-title>
+                                <v-card-text>
+                                    <ul>
+                                        <li v-for="item in recommendedChanges">{{item}}</li>        
+                                    </ul>
+                                </v-card-text>
+                            </v-card>
+                        </v-flex>
+                    </v-layout>
+                </v-container>
                 <editTable :data.sync="targetRates"
                                :dataLoading="degreeLoading"
                                :afsc="chosenAfsc"
@@ -144,15 +176,102 @@ export default {
     computed: {
         ready: function() {
             return this.gotCips && this.gotDegrees;
+        },
+        requiredChanges: function() {
+            var changes = []
+            //check to make sure percentages add up 
+            var totalPercent = this.targetRates.reduce((accum,val) => {
+                return +val.percent + accum;
+            },0)
+            if (totalPercent != 100) {
+                changes.push('Target Rates must add to 100')
+            }
+            //check to make sure at least one tier exists
+            if (this.targetRates.length == 0) {
+                changes.push('Must have at least one tier in Target Accession Rate Table')
+            }
+            //find if degrees are in tiers that do not have target accession rates, and also
+            //get inverse (if target accession rate exists for tier but no degrees) 
+            //first, get all tiers that degrees are assigned to
+            var degreeTiers = this.degreeTree.reduce((accum,val) => {
+                if (accum.indexOf(val.tier) < 0) {
+                    accum.push(val.tier)
+                }
+                return accum;
+            },[])
+            console.log('degreetiers')
+            console.log(degreeTiers)
+            //second, get all tiers that are in target accesion rate table
+            var tarTiers = this.targetRates.reduce((accum,val) => {
+                if (accum.indexOf(val.tier) < 0) {
+                    accum.push(val.tier)
+                }
+                return accum;
+            },[]) 
+            console.log('tartiers')
+            console.log(tarTiers)
+            //use lodash difference to determine tiers that have degrees but no target 
+            //accession rate (tar)
+            var degreesWithoutTar = _.difference(degreeTiers,tarTiers)
+            degreesWithoutTar.forEach((d) => {
+                changes.push('Must have a Target Accession Rate for degrees in ' + d + ' tier')
+            })
+            //use lodash difference to determine tiers that have tar but no degrees
+            var tarWithoutDegrees = _.difference(tarTiers,degreeTiers)
+            tarWithoutDegrees.forEach((d) => {
+                changes.push('Must have at least one degree in ' + d + ' tier')
+            })
+            console.log(degreesWithoutTar)
+            console.log(tarWithoutDegrees)
+            //check if tier has > 100 or Mandatory with < or <= criteria 
+            this.targetRates.forEach((d) => {
+                if (d.percent === 100 && d.criteria === '>') {
+                    changes.push('Must have ">=" or "=" criteria with 100% target accession rate')
+                }
+                if (d.tier === 'Mandatory' && d.criteria.indexOf('<') >= 0) {
+                    changes.push('Must have ">=","=", or ">" criteria for Mandatory tier') 
+                }
+            })
+            return changes
+        },
+        recommendedChanges: function() {
+            var changes = []
+            //find which tiers are used, and suggest using all of them
+            var allTiers = Object.keys(this.tierOrder)
+            var degreeTiers = this.degreeTree.reduce((accum,val) => {
+                if (accum.indexOf(val.tier) < 0) {
+                    accum.push(val.tier)
+                }
+                return accum;
+            },[])
+            var tarTiers = this.targetRates.reduce((accum,val) => {
+                if (accum.indexOf(val.tier) < 0) {
+                    accum.push(val.tier)
+                }
+                return accum;
+            },[]) 
+            var emptyDegreeTier = _.difference(allTiers,degreeTiers)
+            var emptyTarTier = _.difference(allTiers,tarTiers)
+            emptyDegreeTier.forEach((d) => {
+                emptyTarTier.forEach((g) => {
+                    if (d === g) {
+                        changes.push('We suggest creating ' + d + ' target accession rate and adding ' + d + ' degrees.') 
+                    }
+                })
+            })
+            //find out if an entry has a single mandatory tier
+            this.targetRates.forEach((d) => {
+                if (d.tier === 'Mandatory' && d.percent === 100 && (d.criteria.indexOf('>') >= 0 || d.criteria == '=')) {
+                    changes.push('Having a mandatory tier with a 100% target accession rate may result in an inability to meet targets. We suggest reducing the target accession rate and adding additional tiers.')
+                }
+            })
+            return changes
         } 
     },
     methods: {
         submit: function() {
-            var percentCheck =  this.targetRates.reduce((accum,val) => {
-                return +val.percent + accum;
-            },0)
-            if (percentCheck !== 100) {
-                alert('Not Saved! Percentages must add to 100!')
+            if (this.requiredChanges.length != 0) {
+                alert('Please fix required changes before saving')
                 return;
             }
             var degreesSubmit = []
@@ -229,7 +348,7 @@ export default {
                         return (d.status === 200 && d.data.success === true);
                     })
                     if (success) {
-                        this.step = 4 
+                        this.step = 5 
                     } else {
                         alert('Something went wrong trying to communicate with the server. Please try again.') 
                     }
