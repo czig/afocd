@@ -17,6 +17,7 @@
                 :items="cipTree"
                 :pagination.sync="pagination"
                 :loading="cipLoading"
+                :must-sort="true"
                 :search="search"
                 item-key="CIP_Code">
                 <template slot="headers" slot-scope="props">
@@ -186,7 +187,8 @@ export default {
                 }
             ],
             pagination: {
-                sortBy: 'CIP_Code'
+                sortBy: 'CIP_Code',
+                descending: false
             },
             cipCodes: [],
             cipTree: [],

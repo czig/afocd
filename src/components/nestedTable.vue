@@ -54,6 +54,7 @@
                 :items="data"
                 :pagination.sync="pagination"
                 :loading="tableLoading"
+                :must-sort="true"
                 :search="search"
                 item-key="key">
                 <template slot="headers" slot-scope="props">
@@ -217,7 +218,8 @@ export default {
               'width': '10%'
             },
             pagination: {
-                sortBy: 'tier'
+                sortBy: 'tierOrder',
+                descending: false
             },
             search: "",
             edited: {

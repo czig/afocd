@@ -22,6 +22,7 @@
                 :headers="targetHeaders"
                 :items="targetRates"
                 :loading="degreeLoading"
+                :must-sort="true"
                 item-key="key"
                 hide-actions>
                 <template slot="items" slot-scope="props">
@@ -51,6 +52,7 @@
                 :items="degreeTree"
                 :pagination.sync="pagination"
                 :loading="degreeLoading"
+                :must-sort="true"
                 :search="search"
                 item-key="name">
                 <template slot="headers" slot-scope="props">
@@ -226,7 +228,9 @@ export default {
                 },
             ],
             pagination: {
-                sortBy: 'tier'
+                sortBy: 'tierOrder',
+                descending: false
+
             },
             degreeQuals: [],
             degreeTree: [],

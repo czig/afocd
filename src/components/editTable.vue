@@ -53,6 +53,7 @@
                     :headers="headers"
                     :items="data"
                     :loading="dataLoading"
+                    :must-sort="true"
                     item-key="key"
                     hide-actions>
                     <template slot="items" slot-scope="props">
