@@ -344,6 +344,18 @@ export default {
             var cipList = this.cipCodes.map((d) => {
                 return d.CIP_Code + ' - ' + d.CIP_T; 
             })
+            //cip Type list (gives ##.XXXX degrees)
+            var cipTypeList = Object.keys(this.cipCodesGrouped).map((key) => {
+                return key + ' - ' + this.cipCodesGrouped[key][0].CIP_T.split(',')[0];
+            })
+            //sort cipList for sending to component
+            this.cipList = cipList.concat(cipTypeList).sort(function(a,b) {
+                if (a > b) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            });
 
             //get grouping of cip codes by first two digits to create a lookup for totals
             for (var degreeType in this.cipCodesGrouped) {
