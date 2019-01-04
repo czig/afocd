@@ -7,7 +7,9 @@
             <v-divider></v-divider>
             <v-stepper-step :complete="step > 3" step="3">Edit Target Accession Rates</v-stepper-step>
             <v-divider></v-divider>
-            <v-stepper-step step="4">Complete</v-stepper-step>
+            <v-stepper-step :complete="step > 4" step="4">Review</v-stepper-step>
+            <v-divider></v-divider>
+            <v-stepper-step step="5">Complete</v-stepper-step>
         </v-stepper-header> 
         <v-stepper-items>
             <v-layout row>
@@ -42,7 +44,8 @@
                              :afsc="chosenAfsc"
                              :groupedDegrees="cipCodesGrouped"
                              :degreeCounts="cipCodeCounts"
-                             :degreeAutoComplete="cipList">
+                             :degreeAutoComplete="cipList"
+                             :edits="true">
                 </nestedTable>
                 <v-layout row>
                     <v-btn color="warning" @click="step=1">Back</v-btn>
@@ -53,15 +56,37 @@
             <v-stepper-content step="3">
                 <editTable :data.sync="targetRates"
                                :dataLoading="degreeLoading"
-                               :afsc="chosenAfsc">
+                               :afsc="chosenAfsc"
+                               :edits="true">
                 </editTable>
                 <v-layout row>
                     <v-btn color="warning" @click="step=2">Back</v-btn>
                     <v-spacer></v-spacer>
-                    <v-btn color="success" :loading="submitLoading" @click="submit()">Save</v-btn>
+                    <v-btn color="primary" @click="step=4">Continue</v-btn>
                 </v-layout>
             </v-stepper-content>
             <v-stepper-content step="4">
+                <editTable :data.sync="targetRates"
+                               :dataLoading="degreeLoading"
+                               :afsc="chosenAfsc"
+                               :edits="false">
+                </editTable>
+                <nestedTable :tableData.sync="degreeTree"
+                             :tableLoading="degreeLoading"
+                             :tableTitle="chosenAfsc + ' Degrees'"
+                             :afsc="chosenAfsc"
+                             :groupedDegrees="cipCodesGrouped"
+                             :degreeCounts="cipCodeCounts"
+                             :degreeAutoComplete="cipList"
+                             :edits="false">
+                </nestedTable>
+                <v-layout row>
+                    <v-btn color="warning" @click="step=3">Back</v-btn>
+                    <v-spacer></v-spacer>
+                    <v-btn color="success" :loading="submitLoading" @click="submit()">Save</v-btn>
+                </v-layout>
+            </v-stepper-content>
+            <v-stepper-content step="5">
                 <thanks></thanks>
                 <v-layout row>
                     <v-btn color="warning" @click="step=3">Back</v-btn>

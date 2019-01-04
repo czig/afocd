@@ -11,7 +11,7 @@
                     <!--single-line-->
                     <!--hide-details>-->
                 <!--</v-text-field>-->
-                <v-dialog v-model="dialog" max-width="800px">
+                <v-dialog v-if="edits" v-model="dialog" max-width="800px">
                     <v-btn slot="activator" align="right" color="primary" dark class="mb-2">New Degree</v-btn>
                     <v-card>
                         <v-card-title>
@@ -59,6 +59,7 @@
                 <template slot="headers" slot-scope="props">
                     <tr>
                         <th v-for="header in props.headers"
+                            v-if="header.text === 'Actions' && edits === false ? false : true"
                             :key="header.value"
                             :class="[{ 'column sortable': header.sortable }, pagination.descending ? 'desc' : 'asc', header.value === pagination.sortBy ? 'active' : '']"
                             :align="header.align"
@@ -71,22 +72,39 @@
                 </template>
                 <template slot="items" slot-scope="props">
                     <tr>
-                        <td style="cursor: pointer;" @click="props.expanded = !props.expanded">
+                        <td style="cursor: pointer;" 
+                            @click="props.expanded = !props.expanded" 
+                            :width="headers[0].width">
                             <v-icon :class="{activeRow: props.expanded}">keyboard_arrow_down</v-icon>
                         </td>
-                        <td class="text-xs-left">{{ props.item.tier }}</td>
-                        <td class="text-xs-left">{{ props.item.CIP_Code }}</td>
-                        <td class="text-xs-left">{{ props.item.degreeName }}</td>
-                        <td class="text-xs-right">{{ props.item.numDegrees }}</td>
-                        <td class="text-xs-right">{{ props.item.total }}</td>
-                        <td class="justify-center layout px-0">
+                        <td class="text-xs-left" 
+                            :width="headers[1].width">
+                            {{ props.item.tier }}
+                        </td>
+                        <td class="text-xs-left"
+                            :width="headers[2].width">
+                            {{ props.item.CIP_Code }}
+                        </td>
+                        <td class="text-xs-left"
+                            :width="headers[3].width">
+                            {{ props.item.degreeName }}
+                        </td>
+                        <td class="text-xs-right"
+                            :width="headers[4].width">
+                            {{ props.item.numDegrees }}
+                        </td>
+                        <td class="text-xs-right"
+                            :width="headers[5].width">
+                            {{ props.item.total }}
+                        </td>
+                        <td v-if="edits"
+                            class="text-xs-right"
+                            :width="headers[6].width">
                             <v-icon small
-                                    class="mr-2 mt-3"
                                     @click="editGroup(props.item)">
                                 edit
                             </v-icon>
                             <v-icon small
-                                    class="mr-2 mt-3"
                                     @click="deleteGroup(props.item)">
                                 delete
                             </v-icon>
@@ -95,7 +113,7 @@
                 </template>
                 <template slot="expand" slot-scope="props" >
                     <v-data-table
-                        :headers="subHeaders"
+                        :headers="headers"
                         :items="props.item.children"
                         :pagination.sync="paginationSub"
                         item-key="key"
@@ -104,30 +122,30 @@
                         >
                         <template slot="items" slot-scope="props">
                             <tr>
-                                <td :width="subHeaders[0].width"
+                                <td :width="headers[0].width"
                                     class="text-xs-left"></td>
-                                <td :width="subHeaders[1].width"
+                                <td :width="headers[1].width"
                                     class="text-xs-left"></td>
-                                <td :width="subHeaders[2].width" 
+                                <td :width="headers[2].width" 
                                     class="text-xs-left">
                                     {{ props.item.CIP_Code }}
                                 </td>
-                                <td :width="subHeaders[3].width"
+                                <td :width="headers[3].width"
                                     class="text-xs-left">
                                     {{ props.item.degreeName }}
                                 </td>
-                                <td :width="subHeaders[4].width"
+                                <td :width="headers[4].width"
                                     class="text-xs-right"></td>
-                                <td :width="subHeaders[5].width"
+                                <td :width="headers[5].width"
                                     class="text-xs-right"></td>
-                                <td class="justify-center layout px-0">
+                                <td v-if="edits"
+                                    class="text-xs-right" 
+                                    :width="headers[6].width">
                                     <v-icon small
-                                            class="mr-2 mt-3"
                                             @click="editSingle(props.item)">
                                         edit
                                     </v-icon>
                                     <v-icon small
-                                            class="mr-2 mt-3"
                                             @click="deleteSingle(props.item)">
                                         delete
                                     </v-icon>
@@ -146,14 +164,14 @@
 export default {
     data() {
         return {
-            //headers for degree Type (first two digits followed by ".XXXX")
+            //headers always for table, decide whether to add actions column in created hook
             headers: [
                 {
                   'text': '',
                   'value': 'expand',
                   'align': 'left',
                   'sortable': false,
-                  'width': '5%'
+                  'width': '6%'
                 },
                 {
                   'text': 'Tier',
@@ -190,62 +208,14 @@ export default {
                   'sortable': true,
                   'width': '13%'
                 },
-                {
-                  'text': 'Actions',
-                  'value': 'name',
-                  'align': 'left',
-                  'sortable': false,
-                  'width': '10%'
-                }
-
             ],
-            //headers for actual degrees in expansion panel
-            //TODO: this can be a computed property
-            subHeaders: [
-                {
-                  'text': '',
-                  'value': 'expand',
-                  'align': 'left',
-                  'width': '6%' 
-                },
-                {
-                  'text': '',
-                  'value': 'tierOrder',
-                  'align': 'left',
-                  'width': '14%' 
-                },
-                {
-                  'text': 'CIP Code',
-                  'value': 'CIP_Code',
-                  'align': 'left',
-                  'width': '15%'
-                },
-                {
-                  'text': 'Degree Name',
-                  'value': 'degreeName',
-                  'align': 'left',
-                  'width': '30%'
-                },
-                {
-                  'text': '',
-                  'value': 'numDegrees',
-                  'align': 'right',
-                  'width': '13%'
-                },
-                {
-                  'text': '',
-                  'value': 'total',
-                  'align': 'right',
-                  'width': '13%'
-                },
-                {
-                  'text': 'Actions',
-                  'value': 'name',
-                  'align': 'left',
-                  'sortable': false,
-                  'width': '10%'
-                }
-            ],
+            actionsHeader: {
+              'text': 'Actions',
+              'value': 'name',
+              'align': 'right',
+              'sortable': false,
+              'width': '10%'
+            },
             pagination: {
                 sortBy: 'tier'
             },
@@ -297,6 +267,11 @@ export default {
             type: Array,
             required: false,
             default: []
+        },
+        edits: {
+            type: Boolean,
+            required: false,
+            default: false,
         }
     },
     watch: {
@@ -640,6 +615,12 @@ export default {
                 }
             }
         },
+    },
+    created() {
+        console.log('created nestedTable')
+        if (this.edits) {
+            this.headers.push(this.actionsHeader)
+        }
     },
     mounted() {
         console.log('mounted nestedTable')

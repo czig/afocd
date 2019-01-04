@@ -4,7 +4,7 @@
                 <v-card-title>
                     {{ afsc }} Target Accession Rates 
                     <v-spacer></v-spacer>
-                    <v-dialog v-model="dialog" max-width="800px">
+                    <v-dialog v-model="dialog" max-width="800px" v-if="edits">
                         <v-btn slot="activator" align="right" color="primary" dark class="mb-2">New Target</v-btn>
                         <v-card>
                             <v-card-title>
@@ -50,7 +50,7 @@
                     </v-dialog>
                 </v-card-title>
                 <v-data-table 
-                    :headers="targetHeaders"
+                    :headers="headers"
                     :items="data"
                     :loading="dataLoading"
                     item-key="key"
@@ -60,14 +60,13 @@
                             <td class="text-xs-left">{{ props.item.tier }}</td>
                             <td class="text-xs-left">{{ props.item.criteria }}</td>
                             <td class="text-xs-left">{{ props.item.percent }}</td>
-                            <td class="justify-center layout px-0">
+                            <td v-if="edits"
+                                class="text-xs-right">
                                 <v-icon small
-                                        class="mr-2 mt-3"
                                         @click="editItem(props.item)">
                                     edit
                                 </v-icon>
                                 <v-icon small
-                                        class="mr-2 mt-3"
                                         @click="deleteItem(props.item)">
                                     delete
                                 </v-icon>
@@ -91,11 +90,12 @@
                     criteria: "",
                     percent: ""
                 },
-                targetHeaders: [
+                headers: [
                     {
                       'text': 'Tier',
                       'value': 'tierOrder',
-                      'align': 'left'
+                      'align': 'left',
+                      'sortable': true
                     },
                     {
                       'text': 'Criteria',
@@ -107,14 +107,15 @@
                       'text': 'Percentage (%)',
                       'value': 'percent',
                       'align': 'left',
+                      'sortable': true
                     },
-                    {
-                      'text': 'Actions',
-                      'value': 'name',
-                      'align': 'left',
-                      'sortable': false
-                    }
                 ],
+                actionsHeader: {
+                  'text': 'Actions',
+                  'value': 'name',
+                  'align': 'right',
+                  'sortable': false
+                },
                 tiers: ['Mandatory','Desired','Permitted'],
                 tierOrder: {
                     'Mandatory': 1,
@@ -144,6 +145,11 @@
             afsc: {
                 type: String,
                 required: true
+            },
+            edits: {
+                type: Boolean,
+                required: false,
+                default: false,
             }
         },
         computed: {
@@ -250,6 +256,12 @@
                 }
                 this.sendDataToParent()
                 this.close()
+            }
+        },
+        created() {
+            console.log('created editTable')
+            if (this.edits) {
+                this.headers.push(this.actionsHeader)
             }
         }
     }
