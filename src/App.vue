@@ -33,11 +33,11 @@ export default {
   },
   created() {
     console.log('created app')
-    axios.get(login)
+    axios.get(getAfscsUrl)
     .then((res) => {
+        console.log(res)
         this.login = true
         console.log('login success!')
-        console.log(res)
     })
     .catch((err) => {
         console.log(err)

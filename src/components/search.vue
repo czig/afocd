@@ -94,8 +94,6 @@ import axios from 'axios'
 export default {
     data() {
         return {
-            afscs: [],
-            afscLoading: true,
             cipLoading: true,
             chosenAfsc: "",
             //headers for degree Type (first two digits followed by ".XXXX")
@@ -192,7 +190,6 @@ export default {
             },
             cipCodes: [],
             cipTree: [],
-            cipCodeCounts: {},
             search: "",
         }
     },
@@ -225,19 +222,6 @@ export default {
     },
     created() {
         console.log('created')
-        //get list of Afscs for input 
-        axios.get(getAfscsUrl)
-        .then((res) => {
-            var afscObjects = res.data.data
-            for (let i = 0; i < afscObjects.length; i++) {
-                this.afscs.push(afscObjects[i].afsc) 
-            }
-            console.log(this.afscs)
-            this.afscLoading = false 
-        })
-        .catch(function(error) {
-            console.log(error)
-        })
 
         //get list of cip codes 
         axios.get(getCipsUrl)
@@ -290,19 +274,6 @@ export default {
             console.log(error)
         })
 
-        //get grouping of cip codes by first two digits to create a lookup for totals
-        axios.get(getCipTypesUrl)
-        .then((res) => {
-            var data = res.data.data
-            console.log(data[1])
-            //build lookup (degreeType is key and total is value)
-            for (let i = 0; i < data.length; i++) {
-                this.cipCodeCounts[data[i].degreeType] = data[i].total
-            }
-        })
-        .catch(function(error) {
-            console.log(error)
-        })
     },
     mounted() {
         console.log('mounted')
