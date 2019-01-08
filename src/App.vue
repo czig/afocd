@@ -1,11 +1,11 @@
 <template>
     <v-app id="app">
         <v-toolbar dark color="primary">
-            <v-toolbar-title>AFOCD Degree Qualifications</v-toolbar-title>
+            <v-toolbar-title>AFSC Degree Qualifications Helper</v-toolbar-title>
             <v-spacer></v-spacer>
             <v-toolbar-items>
                 <v-btn flat to="/" router>Home</v-btn>
-                <v-btn flat to="/update" router>Update</v-btn>
+                <v-btn flat to="/update" router>Test Changes</v-btn>
                 <v-btn flat to="/view" router>View</v-btn>
                 <v-btn flat to="/search" router>Search</v-btn>
             </v-toolbar-items>
