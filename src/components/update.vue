@@ -448,7 +448,16 @@ export default {
             })
             .then((res) => {
                 var data = res.data.data
-                this.lastUpdate = new Date(data['lastUpdate']).toDateString()
+                var dateTime = data['lastUpdate'].split(' ')
+                var dateArray = dateTime[0].split('-')
+                var year = dateArray[0]
+                var month = dateArray[1]
+                var day = dateArray[2]
+                var timeArray = dateTime[1].split(':')
+                var hour = timeArray[0]
+                var minute = timeArray[1]
+                var second = timeArray[2]
+                this.lastUpdate = new Date(year,month,day,hour,minute,second).toDateString()
             })
             .catch(function(error) {
                 console.log(error)
