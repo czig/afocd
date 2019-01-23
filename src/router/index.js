@@ -4,6 +4,7 @@ import Home from '@/components/home'
 import View from '@/components/view'
 import Search from '@/components/search'
 import Update from '@/components/update'
+import Faq from '@/components/faq'
 
 Vue.use(Router)
 
@@ -28,6 +29,11 @@ export default new Router({
       path: '/update',
       name: 'Update',
       component: Update 
+    },
+    {
+      path: '/faq',
+      name: 'FAQ',
+      component: Faq 
     }
   ]
 })

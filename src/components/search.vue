@@ -28,7 +28,14 @@
                             :align="header.align"
                             :width="header.width"
                             @click="changeSort(header.value)">
-                            {{ header.text }}
+                            <v-tooltip top :max-width="300">
+                                <span slot="activator">
+                                    {{ header.text }}
+                                </span>
+                                <span>
+                                    {{ header.tooltip || header.text }} 
+                                </span>
+                            </v-tooltip>
                             <v-icon small v-if="header.text">arrow_upward</v-icon> 
                         </th>
                     </tr>
@@ -113,8 +120,9 @@ export default {
                   'width': '15%'
                 },
                 {
-                  'text': 'Degree Type',
+                  'text': 'Degree Name',
                   'value': 'degreeName',
+                  'tooltip': 'Name of a degree type (grouping of degrees) or single degree.',
                   'align': 'left',
                   'sortable': true,
                   'width': '41%'
@@ -122,6 +130,7 @@ export default {
                 {
                   'text': 'Avg Grads/Year',
                   'value': 'avgNumPerYear',
+                  'tooltip': 'Taken over a 5 year period, the average number of cadets graduating with this degree type or single degree.', 
                   'align': 'right',
                   'sortable': true,
                   'width': '13%'
@@ -129,6 +138,7 @@ export default {
                 {
                   'text': 'Avg Percentile',
                   'value': 'avgPercentile',
+                  'tooltip': 'Taken over a 5 year period, the average percentile (derived from class rank) of all cadets graduating with this degree type or single degree.', 
                   'align': 'right',
                   'sortable': true,
                   'width': '13%'
@@ -136,6 +146,7 @@ export default {
                 {
                   'text': 'Total Degrees',
                   'value': 'total',
+                  'tooltip': 'Number of degrees within this degree type.',
                   'align': 'right',
                   'sortable': true,
                   'width': '13%'

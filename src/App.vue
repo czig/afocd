@@ -8,6 +8,7 @@
                 <v-btn flat to="/update" router>Test Changes</v-btn>
                 <v-btn flat to="/view" router>View</v-btn>
                 <v-btn flat to="/search" router>Search</v-btn>
+                <v-btn flat to="/faq" router>FAQs</v-btn>
             </v-toolbar-items>
         </v-toolbar>
         <main>
